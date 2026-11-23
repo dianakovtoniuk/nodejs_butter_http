@@ -1,0 +1,21 @@
+{
+  "name": "nodejs-http-from-scratch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Learning Node.js HTTP from raw TCP sockets to a custom Express-like framework.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "net-server": "tsx http/net-server.ts",
+    "net-sender": "tsx http/net-sender.ts",
+    "simple-server": "tsx http/simple-server.ts",
+    "simple-client": "tsx http/simple-client.ts",
+    "simple-web": "cd http/simple-web && tsx server.ts",
+    "simple-web:legacy": "cd http/simple-web && tsx server-legacy.ts",
+    "poster": "cd http/poster && tsx server.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
