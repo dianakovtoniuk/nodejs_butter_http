@@ -1,6 +1,6 @@
 # Nodejs Http From Scratch
 
-Exploring how HTTP works in Node.js without Express, going from raw TCP sockets up to a small Express-like framework with middleware, cookie-based login and a round-robin reverse proxy. Written in TypeScript with zero runtime dependencies.
+Exploring how HTTP works in Node.js without Express, from raw TCP sockets up to a small Express-like framework with middleware, cookie-based login and a round-robin reverse proxy. Written in TypeScript with zero runtime dependencies.
 
 ## Structure
 
