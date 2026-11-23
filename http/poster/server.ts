@@ -15,6 +15,20 @@ interface Post {
   author?: string;
 }
 
+interface Session {
+  userId: number;
+  token: string;
+}
+
+interface LoginBody {
+  username: string;
+  password: string;
+}
+
+// A sample object in this array would look like:
+// { userId: 1, token: "23423423" }
+const SESSIONS: Session[] = [];
+
 const USERS: User[] = [
   { id: 1, name: "Liam Brown", username: "liam23", password: "string" },
   { id: 2, name: "Meredith Green", username: "merit.sky", password: "string" },
@@ -59,6 +73,14 @@ server.route("get", "/", (req, res) => {
   res.sendFile("./public/index.html", "text/html");
 });
 
+server.route("get", "/login", (req, res) => {
+  res.sendFile("./public/index.html", "text/html");
+});
+
+server.route("get", "/profile", (req, res) => {
+  res.sendFile("./public/index.html", "text/html");
+});
+
 server.route("get", "/styles.css", (req, res) => {
   res.sendFile("./public/styles.css", "text/css");
 });
@@ -68,6 +90,40 @@ server.route("get", "/scripts.js", (req, res) => {
 });
 
 // ------ JSON Routes ------ //
+
+// Log a user in and give them a token
+server.route("post", "/api/login", (req, res) => {
+  let raw = "";
+  req.on("data", (chunk: Buffer) => {
+    raw += chunk.toString("utf-8");
+  });
+
+  req.on("end", () => {
+    const body: LoginBody = JSON.parse(raw);
+
+    const username = body.username;
+    const password = body.password;
+
+    // Check if the user exists
+    const user = USERS.find((user) => user.username === username);
+
+    // Check the password if the user was found
+    if (user && user.password === password) {
+      // At this point, we know that the client is who they say they are
+
+      // Generate a random 10 digit token
+      const token = Math.floor(Math.random() * 10000000000).toString();
+
+      // Save the generated token
+      SESSIONS.push({ userId: user.id, token: token });
+
+      res.setHeader("Set-Cookie", `token=${token}; Path=/;`);
+      res.status(200).json({ message: "Logged in successfully!" });
+    } else {
+      res.status(401).json({ error: "Invalid username or password." });
+    }
+  });
+});
 
 // Send the list of all the posts that we have
 server.route("get", "/api/posts", (req, res) => {
