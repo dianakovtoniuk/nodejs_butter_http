@@ -12,6 +12,12 @@ export interface ButterResponse extends ServerResponse {
 
 export type Handler = (req: IncomingMessage, res: ButterResponse) => void;
 
+export type Middleware = (
+  req: IncomingMessage,
+  res: ButterResponse,
+  next: () => void
+) => void;
+
 export default class Butter {
   private server: http.Server;
   /**
@@ -21,6 +27,7 @@ export default class Butter {
    * }
    */
   private routes: Record<string, Handler> = {};
+  private middleware: Middleware[] = [];
 
   constructor() {
     this.server = http.createServer();
@@ -50,22 +57,37 @@ export default class Butter {
         res.end(JSON.stringify(data));
       };
 
-      const key = (req.method ?? "").toLowerCase() + req.url;
-      const handler = this.routes[key];
+      // Run all the middleware functions before we run the corresponding route
+      const runMiddleware = (index: number): void => {
+        // Our exit point...
+        if (index === this.middleware.length) {
+          const handler = this.routes[(req.method ?? "").toLowerCase() + req.url];
 
-      // If the routes object does not have a key of req.method + req.url, return 404
-      if (!handler) {
-        return res
-          .status(404)
-          .json({ error: `Cannot ${req.method} ${req.url}` });
-      }
+          // If the routes object does not have a key of req.method + req.url, return 404
+          if (!handler) {
+            res.status(404).json({ error: `Cannot ${req.method} ${req.url}` });
+            return;
+          }
 
-      handler(req, res);
+          handler(req, res);
+        } else {
+          this.middleware[index](req, res, () => {
+            runMiddleware(index + 1);
+          });
+        }
+      };
+
+      runMiddleware(0);
     });
   }
 
   route(method: Method, path: string, cb: Handler): void {
     this.routes[method + path] = cb;
+  }
+
+  // Register a function that runs before every request reaches its route
+  beforeEach(cb: Middleware): void {
+    this.middleware.push(cb);
   }
 
   listen(port: number, cb: () => void): void {
