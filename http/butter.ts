@@ -4,16 +4,23 @@ import fs from "node:fs/promises";
 
 export type Method = "get" | "post" | "put" | "patch" | "delete";
 
+export interface ButterRequest extends IncomingMessage {
+  // Set by the authentication middleware
+  userId?: number;
+  // Set by the JSON-parsing middleware
+  body?: unknown;
+}
+
 export interface ButterResponse extends ServerResponse {
   sendFile(path: string, mime: string): Promise<void>;
   status(code: number): ButterResponse;
   json(data: unknown): void;
 }
 
-export type Handler = (req: IncomingMessage, res: ButterResponse) => void;
+export type Handler = (req: ButterRequest, res: ButterResponse) => void;
 
 export type Middleware = (
-  req: IncomingMessage,
+  req: ButterRequest,
   res: ButterResponse,
   next: () => void
 ) => void;
@@ -32,7 +39,8 @@ export default class Butter {
   constructor() {
     this.server = http.createServer();
 
-    this.server.on("request", (req, rawRes) => {
+    this.server.on("request", (rawReq, rawRes) => {
+      const req = rawReq as ButterRequest;
       const res = rawRes as ButterResponse;
 
       // Send a file back to the client

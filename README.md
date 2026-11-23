@@ -12,7 +12,7 @@ http/
 ├── simple-client.ts   # node:http client with a keep-alive agent
 ├── butter.ts          # minimal Express-like framework (routing, middleware, res helpers)
 ├── simple-web/        # static site served with Butter, plus a plain-http version for comparison
-├── poster/            # posts API with login and token sessions, built on Butter
+├── poster/            # posts API with login, sessions and auth middleware, built on Butter
 └── poster-proxy/      # reverse proxy balancing requests between two backend servers
 ```
 
@@ -75,29 +75,49 @@ app.route("get", "/api/hello", (req, res) => {
 app.listen(3000, () => console.log("Listening on 3000"));
 ```
 
-Routes are matched on `method + url`. Middleware functions run one after another, and each must call `next()` to continue. Unknown routes return a 404 JSON error after the middleware has run.
+Routes are matched on `method + url`. Middleware functions run one after another, and each must call `next()` to continue or respond itself to stop the chain. Unknown routes return a 404 JSON error after the middleware has run.
+
+`req` is a `ButterRequest`: a regular `IncomingMessage` with two optional fields that middleware can fill in, `userId` and `body`.
 
 ## Poster
 
-| Route | Description |
-| --- | --- |
-| `GET /`, `/login`, `/profile` | serve `index.html` |
-| `GET /styles.css`, `/scripts.js` | static files |
-| `POST /api/login` | checks credentials, sets a `token` cookie |
-| `GET /api/user` | returns the user for the token cookie, 401 otherwise |
-| `GET /api/posts` | list of posts with the author name attached |
-| `DELETE /api/logout`, `PUT /api/user`, `POST /api/posts` | stubs, not implemented yet |
+| Route | Auth | Description |
+| --- | --- | --- |
+| `GET /`, `/login`, `/profile`, `/new-post` | no | serve `index.html` |
+| `GET /styles.css`, `/scripts.js` | no | static files |
+| `POST /api/login` | no | checks credentials, sets a `token` cookie |
+| `DELETE /api/logout` | yes | removes the session and clears the cookie |
+| `GET /api/user` | yes | returns the username and name of the current user |
+| `PUT /api/user` | yes | updates username, name and, optionally, password |
+| `GET /api/posts` | no | list of posts with the author name attached |
+| `POST /api/posts` | yes | creates a post and returns it with status 201 |
 
-Demo users live in memory in `server.ts`. The server also registers three demo middleware functions, one of which waits 2 seconds, so every request is delayed accordingly.
+Three middleware functions run before the routes:
+
+1. Authentication: for protected routes, looks up the `token` cookie in `SESSIONS`, sets `req.userId` or responds with 401.
+2. JSON parsing: parses bodies sent with `Content-Type: application/json` into `req.body`.
+3. Page routing: serves `index.html` for the frontend routes.
+
+Demo users and posts live in memory in `server.ts` and reset on every restart.
 
 The static frontend for `poster` and `poster-proxy` (`index.html`, `styles.css`, `scripts.js`) is not included in this repo. Place those files in the matching `public/` folder to serve the page at `/`.
+
+Quick check with curl:
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" \
+  -d '{"username":"liam23","password":"string"}' \
+  http://localhost:8000/api/login
+
+curl -b "token=<token from Set-Cookie>" http://localhost:8000/api/user
+```
 
 ## Known limitations
 
 - Query strings are not supported: `/api/posts?x=1` returns 404.
 - `res.sendFile` does not handle missing files, so requesting a page without its frontend files crashes the server.
+- Invalid or missing JSON bodies on routes that expect one are not handled and crash the request.
+- The token is read as the first value of the `Cookie` header, so it only works when `token` is the only cookie.
 - Sessions are stored in memory in a single process, so they would not work behind the proxy with several copies of `poster`.
 - Passwords are stored in plain text. This is demo data only.
-- Stub routes never respond, so the request hangs.
 - Static file paths are relative to the working directory, so run the servers through the npm scripts.
-````
