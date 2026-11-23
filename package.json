@@ -11,7 +11,10 @@
     "simple-client": "tsx http/simple-client.ts",
     "simple-web": "cd http/simple-web && tsx server.ts",
     "simple-web:legacy": "cd http/simple-web && tsx server-legacy.ts",
-    "poster": "cd http/poster && tsx server.ts"
+    "poster": "cd http/poster && tsx server.ts",
+    "poster-proxy:proxy": "cd http/poster-proxy && tsx proxy.ts",
+    "poster-proxy:1": "cd http/poster-proxy && tsx server-1.ts",
+    "poster-proxy:2": "cd http/poster-proxy && tsx server-2.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
